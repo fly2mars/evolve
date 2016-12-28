@@ -414,7 +414,7 @@ void suStructrueOptimizer::read_point_information(std::string address)
 															float strain_temp = pow(pow(temp_vector[0],2)+ pow(temp_vector[1], 2)+ pow(temp_vector[2], 2)+
 																pow(temp_vector[3], 2)+ pow(temp_vector[4], 2)+ pow(temp_vector[5], 2)+
 																pow(temp_vector[6], 2)+ pow(temp_vector[7], 2)+ pow(temp_vector[8], 2),0.5);
-															if(strain_temp>20.0)std::cout << strain_temp << " ";
+															/*if(strain_temp>20.0)std::cout << strain_temp << " ";*/
 															/*std::cout << temp_vector[0] << temp_vector[1] << temp_vector[2] << temp_vector[3] << temp_vector[4] << temp_vector[5]
 																<< temp_vector[6] << temp_vector[7] << temp_vector[8];
 															system("pause");*/
