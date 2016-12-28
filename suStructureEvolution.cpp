@@ -318,7 +318,6 @@ void suStructrueOptimizer::readFeedback(std::string address)
 
 void suStructrueOptimizer::read_point_information(std::string address)
 {
-	system("pause");
 	all_point_mises_strain.clear();
 	std::fstream in;
 	char read_temp;
@@ -437,7 +436,6 @@ void suStructrueOptimizer::read_point_information(std::string address)
 		}
 	}
 	in.close();
-	system("pause");
 }
 
 void suStructrueOptimizer::read_point_coor(std::string address, float box_maxx, float box_maxy, float box_maxz, int box_level)
