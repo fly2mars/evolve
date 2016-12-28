@@ -22,7 +22,19 @@ namespace SU
 	class suRuleEngine
 	{
 	public:
+		float cutRatio;
+		double maxStrain;
+		int boundaryThickness;
 		suRuleEngine() {}
+		ACT_FLG processStrain(AgentType *pAgent) {
+			bool cut = false;
+			if (pAgent->pState_->strainSort <=(1-pow(cutRatio,globalValue::globalValuePoint().iteratorTimes))&&pAgent->pState_->location>boundaryThickness&&pAgent->pState_->strain<=maxStrain)
+				cut = true;
+			if (cut == true)
+				return FLG_REMOVE;
+			else
+				return FLG_UNCHANGE;
+		}
 		ACT_FLG process(AgentType *pAgent)
 		{
 			//std::cout << "suRuleEngine is running \n";
@@ -85,15 +97,18 @@ namespace SU
 	public:
 		suAgent() : isAlive_(true), pState_(0) {}
 
-		int make_decision()
+		int make_decision(float ratio_,double strain_,int thickness_)
 		{
 			//make decision by rules
 			suRuleEngine<suAgent<OctNode> > ai;
-			return ai.process(this);
+			ai.cutRatio = ratio_;
+			ai.maxStrain = strain_;
+			ai.boundaryThickness = thickness_;
+			return ai.processStrain(this);
 		} 
-		void act()
+		void act(float ratio,double strain,int thickness)
 		{
-			int act_flag = make_decision();
+			int act_flag = make_decision(ratio,strain,thickness);
 			suEditor<suAgent<OctNode> > editor;
 			editor.process(act_flag, this);
 		}

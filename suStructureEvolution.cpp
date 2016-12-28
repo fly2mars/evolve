@@ -5,8 +5,8 @@
 #include <deque>
 #include "config.h"
 #include "suWriteSTL.h"
-
-
+#include "global.h"
+#include <sstream>
 #include <Eigen/Core>
 
 int suStructrueOptimizer::init_morton_coding()
@@ -18,7 +18,7 @@ int suStructrueOptimizer::init_morton_coding()
 
 	for (int i = 0; i < (int)nodePointers.size(); i++)
 	{
-		if (nodePointers[i]->label_ == SU::INTERIOR_CELL||nodePointers[i]->label_==SU::BOUNDARY_CELL||nodePointers[i]->label_==SU::BOUNDARY_CELL_SPECIAL)
+		if (nodePointers[i]->label_ == SU::INTERIOR_CELL || nodePointers[i]->label_ == SU::BOUNDARY_CELL || nodePointers[i]->label_ == SU::BOUNDARY_CELL_SPECIAL)
 		{
 			nodePointers[i]->out = true;
 			SU::Point _cp = nodePointers[i]->center() - minP;
@@ -132,7 +132,7 @@ int suStructrueOptimizer::evolve()
 
 	for (unsigned int i = 0; i < nodeArr_.size(); i++)
 	{
-		if (nodeArr_[i]->label_ == SU::EXTERIOR_CELL)
+		if (nodeArr_[i]->label_ == SU::EXTERIOR_CELL || nodeArr_[i]->out == false)
 			continue;
 		std::vector<int> neighbors;
 		std::vector<SU::OctNode *> env;
@@ -149,9 +149,20 @@ int suStructrueOptimizer::evolve()
 
 	/*while (true)
 	{*/
+	float cutRatio = globalValue::globalValuePoint().volumeFraction;
+	int boundaryThickness_ = globalValue::globalValuePoint().boundaryThickness;
+	double maxStrain_ = globalValue::globalValuePoint().maxStrain;
+//#include<iostream>
+//	std::cout << std::endl << "type the cut ratio:";
+//	std::cin >> cutRatio;
+//	std::cout << std::endl << "type the boundary thickness:";
+//	std::cin >> boundaryThickness_;
+//	std::cout << std::endl << "type the maxStrain(default please type '-1'):";
+//	std::cin >> maxStrain_;
+	maxStrain_ = maxStrain_ < 0 ? 9999999999999999999.0 : maxStrain_;
 	for (unsigned int i = 0; i < agents.size(); i++)
 	{
-		agents[i].act();
+		agents[i].act(cutRatio,maxStrain_,boundaryThickness_);
 	}
 	for (int i = 0; i < agents.size(); i++)
 	{
@@ -171,16 +182,18 @@ int suStructrueOptimizer::run()
 {
 	int iteraTimes = 0;
 	while (true) {
+		std::string oofemAddress = globalValue::globalValuePoint().oofemPath;
+		outForcedOofemFile(oofemAddress+"\\oofemOutFile.txt");
+		useOofem(oofemAddress);
+		readFeedback(oofemAddress);
+		auto testIt = nodeArr_.begin();
+		globalValue::globalValuePoint().currentIteratorTime++;
 		evolve();
-		/*outOofemfile("D:\\oofem\\build2.3\\Debug\\oofemOutFile.txt");
-		useOofem();
-		readFeedback();*/
-		/*auto testIt = nodeArr_.begin();
-		for (; testIt != nodeArr_.end(); testIt++) {
+		
+		/*for (; testIt != nodeArr_.end(); testIt++) {
 			if ((*testIt)->out == 1)
-				std::cout << (*testIt)->morton << ":" << (*testIt)->strain << std::endl;
+				std::cout << (*testIt)->morton << ":" << (*testIt)->strainSort << ":" << (*testIt)->out << std::endl;
 		}*/
-	
 		if (++iteraTimes == nIterTimes_) break;
 	}
 	export_stl_with_metaball("d:/test.stl", nodeArr_);
@@ -197,8 +210,7 @@ void suStructrueOptimizer::outOofemfile(std::string outAddress)
 	auto outIt = nodeArr_.begin();
 	int voxelNumber = 0;
 	for (; outIt != nodeArr_.end(); outIt++) {
-		if (((*outIt)->label_ == SU::BOUNDARY_CELL || (*outIt)->label_ == SU::BOUNDARY_CELL_SPECIAL 
-			|| (*outIt)->label_ == SU::INTERIOR_CELL) && (*outIt)->out == true)
+		if ((*outIt)->out == true)
 			voxelNumber++;
 	}
 	/*int count = 0;
@@ -257,14 +269,17 @@ void suStructrueOptimizer::outOofemfile(std::string outAddress)
 	outfile.close();
 }
 
-void suStructrueOptimizer::useOofem()
+void suStructrueOptimizer::useOofem(std::string address)
 {
-	system("cd /d D:\\oofem\\build2.3\\Debug &oofem.exe&oofem -f oofemOutFile.txt");
+	std::string cmd_ = "cd /d " + address + "&oofem -f oofemOutFile.txt";
+	char * cmd = new char[strlen(cmd_.c_str()) + 1];
+	strcpy(cmd, cmd_.c_str());
+	system(cmd);
 }
 
 void suStructrueOptimizer::outCoor(float maxX, float maxY, float maxZ, int level, std::string coorAddress)
 {
-	double lines = pow(2, level);//计算每一行有多少体素   dxdydz分别是三个方向上每个体素的尺寸
+	double lines = pow(2, level);//计算每一行有多少体素   dxdydz分别是三个方向上每个体素的尺寸 
 	double dx = maxX / lines;
 	double dy = maxY / lines;
 	double dz = maxZ / lines;
@@ -291,18 +306,19 @@ void suStructrueOptimizer::outCoor(float maxX, float maxY, float maxZ, int level
 	outfile.close();
 }
 
-void suStructrueOptimizer::readFeedback()
+void suStructrueOptimizer::readFeedback(std::string address)
 {
-	read_point_information("D:\\oofem\\build2.3\\Debug\\Majnun.out.m0.1.vtu");
+	read_point_information(address+"\\Majnun.out.m0.1.vtu");
 	float x = (*pVolume_).bbMax_.data()[0] - (*pVolume_).bbMin_.data()[0];
 	float y = (*pVolume_).bbMax_.data()[1] - (*pVolume_).bbMin_.data()[1];
 	float z = (*pVolume_).bbMax_.data()[2] - (*pVolume_).bbMin_.data()[2];
-	read_point_coor("D:\\oofem\\build2.3\\Debug\\Majnun.out.m0.1.vtu",x,y,z,nLevel_);
+	read_point_coor(address + "\\Majnun.out.m0.1.vtu",x,y,z,nLevel_);
 	assignment(nodeArr_);
 }
 
 void suStructrueOptimizer::read_point_information(std::string address)
 {
+	system("pause");
 	all_point_mises_strain.clear();
 	std::fstream in;
 	char read_temp;
@@ -333,63 +349,83 @@ void suStructrueOptimizer::read_point_information(std::string address)
 									in >> read_temp;
 									if (read_temp == '9')
 									{
-										for (;;)
+										in >> read_temp;
+										if (read_temp == '\"')
 										{
-											in >> read_temp;
-											//if (read_temp == '<')
-											//break;
-											int break_ = 0;
-											if (read_temp == '>')
+											for (;;)
 											{
-												point_strain inf_temp;
-												double temp_vector[9];
-												char a[12];
-												int count = 0;
-												for (;;)
+												in >> read_temp;
+												//if (read_temp == '<')
+												//break;
+												int break_ = 0;
+												if (read_temp == '>')
 												{
-													//in >> read_temp;
-													in >> read_temp;
-													if (read_temp == '<')
+													point_strain inf_temp;
+													double temp_vector[9];
+													char a[12];
+													int count = 0;
+													for (;;)
 													{
-														break_++;
-														break;
-													}
-													if (read_temp == '-')
-													{
-														for (int i = 0; i < 12; i++)
+														//in >> read_temp;
+														in >> read_temp;
+														if (read_temp == '<')
 														{
-															in >> a[i];
+															break_++;
+															break;
 														}
-														temp_vector[count] = -1 * trans(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]);
-													}
-													else
-													{
-														a[0] = read_temp;
-														for (int i = 1; i < 12; i++)
+														if (read_temp == '-')
 														{
-															in >> a[i];
+															for (int i = 0; i < 12; i++)
+															{
+																in >> a[i];
+															}
+															temp_vector[count] = -1 * trans(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]);
 														}
-														temp_vector[count] = trans(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]);
+														else
+														{
+															a[0] = read_temp;
+															for (int i = 1; i < 12; i++)
+															{
+																in >> a[i];
+															}
+															temp_vector[count] = trans(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]);
+														}
+														count++;
+														if (count == 9)
+														{
+															count = 0;
+															/*inf_temp.x_strain = pow(temp_vector[0] * temp_vector[0] + temp_vector[1] * temp_vector[1] + temp_vector[2] * temp_vector[2], 0.5);
+															inf_temp.y_strain = pow(temp_vector[3] * temp_vector[3] + temp_vector[4] * temp_vector[4] + temp_vector[5] * temp_vector[5], 0.5);
+															inf_temp.z_strain = pow(temp_vector[6] * temp_vector[6] + temp_vector[7] * temp_vector[7] + temp_vector[8] * temp_vector[8], 0.5);
+															float strain_temp = pow(0.5*(pow(inf_temp.x_strain - inf_temp.y_strain, 2) + pow(inf_temp.y_strain - inf_temp.z_strain, 2) +
+															pow(inf_temp.z_strain-inf_temp.x_strain, 2)), 0.5);*/
+															/*float strain_temp = pow(pow(temp_vector[0] + temp_vector[3] + temp_vector[6], 2)
+																+ pow(temp_vector[1] + temp_vector[4] + temp_vector[7], 2) + pow(temp_vector[2] + temp_vector[5] + temp_vector[8], 2), 0.5);*/
+															/*float strain_temp = 0.5*temp_vector[0] * 0.5*temp_vector[4] * 0.5*temp_vector[8] +
+																temp_vector[1] * temp_vector[5] * temp_vector[6] +
+																temp_vector[2] * temp_vector[3] * temp_vector[7] -
+																temp_vector[2] * 0.5*temp_vector[4] * temp_vector[6] -
+																temp_vector[1] * temp_vector[3] * 0.5*temp_vector[8] -
+																0.5*temp_vector[0] * temp_vector[5] * temp_vector[7];*/
+															/*float strain_temp = pow(pow(temp_vector[0]- temp_vector[4],2)+pow(temp_vector[4]- temp_vector[8],2)+pow(temp_vector[0]- temp_vector[8],2),0.5);*/
+															/*float strain_temp = pow(0.5*(pow(temp_vector[0],2)+ pow(temp_vector[1], 2)+ pow(temp_vector[2], 2)+
+																pow(temp_vector[3], 2)+ pow(temp_vector[4], 2)+ pow(temp_vector[5], 2)+
+																pow(temp_vector[6], 2)+ pow(temp_vector[7], 2)+ pow(temp_vector[8], 2)), 2);*/
+															float strain_temp = pow(pow(temp_vector[0],2)+ pow(temp_vector[1], 2)+ pow(temp_vector[2], 2)+
+																pow(temp_vector[3], 2)+ pow(temp_vector[4], 2)+ pow(temp_vector[5], 2)+
+																pow(temp_vector[6], 2)+ pow(temp_vector[7], 2)+ pow(temp_vector[8], 2),0.5);
+															if(strain_temp>20.0)std::cout << strain_temp << " ";
+															/*std::cout << temp_vector[0] << temp_vector[1] << temp_vector[2] << temp_vector[3] << temp_vector[4] << temp_vector[5]
+																<< temp_vector[6] << temp_vector[7] << temp_vector[8];
+															system("pause");*/
+															all_point_mises_strain.push_back(strain_temp);
+														}
 													}
-													count++;
-													if (count == 9)
-													{
-														count = 0;
-														/*inf_temp.x_strain = pow(temp_vector[0] * temp_vector[0] + temp_vector[1] * temp_vector[1] + temp_vector[2] * temp_vector[2], 0.5);
-														inf_temp.y_strain = pow(temp_vector[3] * temp_vector[3] + temp_vector[4] * temp_vector[4] + temp_vector[5] * temp_vector[5], 0.5);
-														inf_temp.z_strain = pow(temp_vector[6] * temp_vector[6] + temp_vector[7] * temp_vector[7] + temp_vector[8] * temp_vector[8], 0.5);
-														float strain_temp = pow(0.5*(pow(inf_temp.x_strain - inf_temp.y_strain, 2) + pow(inf_temp.y_strain - inf_temp.z_strain, 2) +
-														pow(inf_temp.z_strain-inf_temp.x_strain, 2)), 0.5);*/
-														float strain_temp = pow(pow(temp_vector[0] + temp_vector[3] + temp_vector[6], 2)
-															+ pow(temp_vector[1] + temp_vector[4] + temp_vector[7], 2) + pow(temp_vector[2] + temp_vector[5] + temp_vector[8], 2), 0.5);
-														std::cout << strain_temp << " ";
-														all_point_mises_strain.push_back(strain_temp);
-													}
+													break;
 												}
-												break;
+												if (break_)
+													break;
 											}
-											if (break_)
-												break;
 										}
 									}
 								}
@@ -401,6 +437,7 @@ void suStructrueOptimizer::read_point_information(std::string address)
 		}
 	}
 	in.close();
+	system("pause");
 }
 
 void suStructrueOptimizer::read_point_coor(std::string address, float box_maxx, float box_maxy, float box_maxz, int box_level)
@@ -555,9 +592,33 @@ void suStructrueOptimizer::ass_point()
 void suStructrueOptimizer::assignment(std::vector<SU::OctNode*>& assVector)
 {
 	auto assIt = assVector.begin();
+	int countAllVoxels = 0;
+	for (; assIt != assVector.end(); assIt++)
+	{
+		if ((*assIt)->label_ != SU::EXTERIOR_CELL && (*assIt)->out == 1)
+			countAllVoxels++;
+	}
+	assIt = assVector.begin();
 	for (; assIt != assVector.end(); assIt++)//对所有的auto_cell赋应变值
 	{
+
 		(*assIt)->strain = return_max_strain((*assIt)->morton, nLevel_);
+
+		//std::cout << auto_cell[ca[i]].strain << "  ";
+		//std::cout << assIt->strain << ' ';
+	}
+
+	for (assIt=assVector.begin(); assIt != assVector.end(); assIt++)//对所有的auto_cell赋应变值
+	{
+		auto strainThis = (*assIt)->strain;
+		auto sortIt = assVector.begin();
+		int count = 0;
+		for (; sortIt != assVector.end(); sortIt++) {//HOW MUCH SMALLER THAN THIS ONE
+			if ((*sortIt)->label_!=SU::EXTERIOR_CELL&&(*sortIt)->strain < strainThis&&(*sortIt)->out==1)
+ 				count++;
+		}
+
+		(*assIt)->strainSort = (float)(count + 1) / (float)countAllVoxels;
 		//std::cout << auto_cell[ca[i]].strain << "  ";
 		//std::cout << assIt->strain << ' ';
 	}
@@ -677,7 +738,8 @@ bool suStructrueOptimizer::export_stl_with_metaball(const char * fileName, std::
 	metaball.squaredRadius = pow(volume_size / 2, 2);
 	mballs.push_back(metaball);*/
 
-	int resolution = nVolume_per_dim * 5;
+	// = nVolume_per_dim * 5;
+	int resolution = globalValue::globalValuePoint().mcResolution;
 	std::cout << "Num of Metaballs: " << mballs.size() << std::endl;
 	std::cout << "Dim of Grid: " << resolution << "^ 3" << std::endl;
 	std::cout << "stlVector.size()=" << stlVector.size() << std::endl;
@@ -685,7 +747,130 @@ bool suStructrueOptimizer::export_stl_with_metaball(const char * fileName, std::
 	
 	//取势场中threshold=1的等值面	
 	if (mballs.size())
-		SU::write_metaball_to_stl(fileName, /*samples*/mballs, fThresholdMC, resolution, bbox,pVolume_->mesh_);
+		SU::write_metaball_to_stl(fileName, /*samples*/mballs, globalValue::globalValuePoint().metaballThreshold, resolution, bbox,pVolume_->mesh_);
 
 	return true;
+}
+
+
+void suStructrueOptimizer::outForcedOofemFile(std::string outAddress)
+{
+	auto outIt = nodeArr_.begin();
+	int voxelNumber = 0;
+	for (; outIt != nodeArr_.end(); outIt++) {
+		if ((*outIt)->out == true)
+			voxelNumber++;
+	}
+	/*int count = 0;
+	for (outIt = nodeArr_.begin(); outIt != nodeArr_.begin(); outIt++) {
+	if ((*outIt)->label_ == SU::INTERIOR_CELL)
+	count++;
+	}
+	std::cout << count << std::endl;
+	system("pause");*/
+	std::fstream outfile;
+	outfile.open(outAddress, std::ios::out);
+	outfile << "Majnun.out" << std::endl
+		<< "Simple bending of a cantilever beam, quadratic elements." << std::endl
+		<< "LinearStatic nsteps 2 controllmode 1 rtolv 1.e-3 nmodules 1" << std::endl
+		<< "vtkxml tstep_all domain_all primvars 1 1 vars 6 1 2 4 5 27 28 stype 1" << std::endl
+		<< "domain 3d" << std::endl
+		<< "OutputManager tstep_all dofman_all element_all" << std::endl
+		<< "ndofman " << pow((pow(2, nLevel_) + 1), 3) << " nelem " << voxelNumber * 5 << " ncrosssect 1 nmat 1 nbc 2 nic 0 nltf 1" << std::endl;
+	outfile.close();
+	float x = (*pVolume_).bbMax_.data()[0] - (*pVolume_).bbMin_.data()[0];
+	float y = (*pVolume_).bbMax_.data()[1] - (*pVolume_).bbMin_.data()[1];
+	float z = (*pVolume_).bbMax_.data()[2] - (*pVolume_).bbMin_.data()[2];
+	outForcedCoor(x, y, z, nLevel_,outAddress);
+
+	int number = 0;
+	outIt = nodeArr_.begin();
+	for (; outIt != nodeArr_.end(); outIt++)
+	{
+		if (((*outIt)->label_ == SU::BOUNDARY_CELL || (*outIt)->label_ == SU::BOUNDARY_CELL_SPECIAL
+			|| (*outIt)->label_ == SU::INTERIOR_CELL) && (*outIt)->out == true)
+		{
+			int x, y, z;
+			suMorton::decode(x, y, z, (*outIt)->morton, nLevel_);
+			//outfile << pNode->xLocCode_ << "  " << pNode->yLocCode_ << "  " << pNode->zLocCode_ << "  " << pNode->level_ << "  " << pNode->label_ << "  ";
+			//outfile << IndexX << "  " << IndexY << "  " << IndexZ;
+		
+			SU::voxel_output* asd = new SU::voxel_output(x, y, z, nLevel_, outAddress);
+
+			//voxel_output asd(pChildNode, level);
+			asd->output_point2(number++,forcedPoint);
+			delete asd;
+		}
+	}
+
+	outfile.open(outAddress, std::ios::app);
+	std::stringstream ss;
+	std::string density, youngModules, possionRatio, force, tAlpha;
+	ss << globalValue::globalValuePoint().density;
+	ss >> density;
+	ss.clear();
+	ss << globalValue::globalValuePoint().youngModules;
+	ss >> youngModules;
+	ss.clear();
+	ss << globalValue::globalValuePoint().possionRatio;
+	ss >> possionRatio;
+	ss.clear();
+	ss << globalValue::globalValuePoint().force;
+	ss>>force;
+	ss.clear();
+	ss << globalValue::globalValuePoint().tAlpha;
+	ss >> tAlpha;
+	outfile << "SimpleCS 1 thick 1.0 width 1.0" << std::endl << "IsoLE 1 d "<<density<<" E "<<youngModules<<" n "<<possionRatio<<"  tAlpha "<<tAlpha
+		<< std::endl << "BoundaryCondition 1 loadTimeFunction 1 prescribedvalue 0.0"
+		<< std::endl << "ConstantSurfaceLoad 2 ndofs 3 loadType 2 Components 3 0.0 -30 0.0 loadTimeFunction 1"
+		<< std::endl << "ConstantFunction 1 f(t) 1.0" << std::endl;
+	outfile.close();
+}
+
+void suStructrueOptimizer::outForcedCoor(float maxX, float maxY, float maxZ, int level, std::string coorAddress)
+{
+	double lines = pow(2, level);//计算每一行有多少体素   dxdydz分别是三个方向上每个体素的尺寸
+	double dx = maxX / lines;
+	double dy = maxY / lines;
+	double dz = maxZ / lines;
+	float region_x[2], region_y[2], region_z[2];
+	region_x[0] = 0.095;
+	region_x[1] = 0.105;
+	region_y[0] = 0.09;
+	region_y[1] = 0.11;
+	region_z[0] = 0.07;
+	region_z[1] = 0.08;
+	/*std::cout <<std::endl<< "typing the region of the force    xmin xmax ymin ymax zmin zmax:";
+	std::cin>> region_x[0] >>region_x[1]>>	region_y[0]>>	region_y[1]>>	region_z[0] >>	region_z[1];*/
+	region_x[0] = globalValue::globalValuePoint().loadRegion[0];
+	region_x[1] = globalValue::globalValuePoint().loadRegion[1];
+	region_y[0] = globalValue::globalValuePoint().loadRegion[2];
+	region_y[1] = globalValue::globalValuePoint().loadRegion[3];
+	region_z[0] = globalValue::globalValuePoint().loadRegion[4];
+	region_z[1] = globalValue::globalValuePoint().loadRegion[5];
+
+	std::fstream outfile;
+	outfile.open(coorAddress, std::ios::app);
+	int number = 1;
+	lines += 1;
+	for (int i = 0; i < lines; i++)//输出每个节点的坐标
+	{
+		for (int j = 0; j < lines; j++)
+		{
+			for (int k = 0; k < lines; k++)
+			{
+				if ((j*dx >= region_x[0]) && (j*dx <= region_x[1]) && (k*dy >= region_y[0]) && (k*dy <= region_y[1]) && (i*dz >= region_z[0]) && (i*dz <= region_z[1]))
+				{
+					forcedPoint.push_back(number);
+				}
+				if (k == 0)
+				{
+					outfile << "node   " << number++ << "   coords 3     " << j *dx << "  " << k *dy << "  " << i *dz << "       bc 3 1 1 1" << std::endl;
+				}
+				else
+					outfile << "node   " << number++ << "   coords 3     " << j *dx << "  " << k *dy << "  " << i *dz << std::endl;
+			}
+		}
+	}
+	outfile.close();
 }

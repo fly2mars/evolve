@@ -847,4 +847,87 @@ namespace SU {
 		outfile.close();
 	}
 
+	void SU::voxel_output::output_point2(int number_,std::vector<int> forcedPoint_)
+	{
+		double q = pow(2, level) + 1;
+		point_code[0] = (x_code - 1)*q + y_code + z_code *q*q;
+		point_code[1] = (x_code - 1)*q + y_code + 1 + z_code *q*q;
+		point_code[3] = x_code *q + y_code + 1 + z_code *q*q;
+		point_code[2] = x_code *q + y_code + z_code *q*q;
+
+		point_code[4] = (x_code - 1)*q + y_code + (z_code - 1)*q*q;
+		point_code[5] = (x_code - 1)*q + y_code + 1 + (z_code - 1)*q*q;
+		point_code[7] = x_code *q + y_code + 1 + (z_code - 1)*q*q;
+		point_code[6] = x_code *q + y_code + (z_code - 1)*q*q;
+
+		std::fstream outfile;
+		outfile.open(address_, std::ios::app);
+		/*for (int i = 0; i <= 7; i++)
+		{
+		outfile << point_code[i] << "  ";
+		}
+		//outfile <<"    "<< x_code << "  " << y_code << "  " << z_code;
+		outfile << "    	mat 1 crossSect 1	nlgeo 1" << endl;*/
+
+		std::vector<int>::iterator forcedPointIt;
+		outfile << "LTRSpace  " << 5 * number_ + 1 << "  " << "nodes  4	  " << point_code[0] << "  " << point_code[3] << "  "
+			<< point_code[2] << "  " << point_code[6] << "  mat 1 crossSect 1	NIP  1";
+		for (forcedPointIt = forcedPoint_.begin(); forcedPointIt != forcedPoint_.end(); forcedPointIt++)
+		{
+			if ((point_code[0] == *forcedPointIt) || (point_code[3] == *forcedPointIt) || (point_code[2] == *forcedPointIt) || (point_code[6] == *forcedPointIt))
+			{
+				outfile << " BoundaryLoads 2 2 3";
+				break;
+			}
+		}
+		outfile << std::endl;
+		outfile << "LTRSpace  " << 5 * number_ + 2 << "  " << "nodes  4	  " << point_code[0] << "  " << point_code[3] << "  "
+			<< point_code[6] << "  " << point_code[5] << "  mat 1 crossSect 1	NIP  1";
+		for (forcedPointIt = forcedPoint_.begin(); forcedPointIt != forcedPoint_.end(); forcedPointIt++)
+		{
+			if ((point_code[0] == *forcedPointIt) || (point_code[3] == *forcedPointIt) || (point_code[5] == *forcedPointIt) || (point_code[6] == *forcedPointIt))
+			{
+				outfile << " BoundaryLoads 2 2 3";
+				break;
+			}
+		}
+		outfile << std::endl;
+		outfile << "LTRSpace  " << 5 * number_ + 3 << "  " << "nodes  4	  " << point_code[3] << "  " << point_code[6] << "  "
+			<< point_code[5] << "  " << point_code[7] << "  mat 1 crossSect 1	NIP  1";
+		for (forcedPointIt = forcedPoint_.begin(); forcedPointIt != forcedPoint_.end(); forcedPointIt++)
+		{
+			if ((point_code[3] == *forcedPointIt) || (point_code[6] == *forcedPointIt) || (point_code[5] == *forcedPointIt) || (point_code[7] == *forcedPointIt))
+			{
+				outfile << " BoundaryLoads 2 2 3";
+				break;
+			}
+		}
+		outfile << std::endl;
+		outfile << "LTRSpace  " << 5 * number_ + 4 << "  " << "nodes  4	  " << point_code[0] << "  " << point_code[1] << "  "
+			<< point_code[3] << "  " << point_code[5] << "  mat 1 crossSect 1	NIP  1";
+		for (forcedPointIt = forcedPoint_.begin(); forcedPointIt != forcedPoint_.end(); forcedPointIt++)
+		{
+			if ((point_code[0] == *forcedPointIt) || (point_code[1] == *forcedPointIt) || (point_code[3] == *forcedPointIt) || (point_code[5] == *forcedPointIt))
+			{
+				outfile << " BoundaryLoads 2 2 3";
+				break;
+			}
+		}
+		outfile << std::endl;
+		outfile << "LTRSpace  " << 5 * number_ + 5 << "  " << "nodes  4	  " << point_code[4] << "  " << point_code[6] << "  "
+			<< point_code[5] << "  " << point_code[0] << "  mat 1 crossSect 1	NIP  1";
+		for (forcedPointIt = forcedPoint_.begin(); forcedPointIt != forcedPoint_.end(); forcedPointIt++)
+		{
+			if ((point_code[4] == *forcedPointIt) || (point_code[5] == *forcedPointIt) || (point_code[6] == *forcedPointIt) || (point_code[0] == *forcedPointIt))
+			{
+				outfile << " BoundaryLoads 2 2 3";
+				break;
+			}
+		}
+		outfile << std::endl;
+		outfile.close();
+	}
+
+
+
 }//end namespace SU

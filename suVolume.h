@@ -110,7 +110,7 @@ namespace SU{
 		bool out;
 		bool outNext;
 		float strain;
-
+		float strainSort;
 		NODE_LABEL     label_;
 
 		OctNode() :xLocCode_(0), yLocCode_(0), zLocCode_(0), level_(0), label_(UNDEFINE_CELL), 
@@ -242,6 +242,7 @@ namespace SU{
 			, y_code(y_ + 1), z_code(z_ + 1), level(levell), address_(address) {}
 	
 		void output_point1();//计算与输出点的编码
+		void output_point2(int,std::vector<int>);
 	};
 
 	double trans(char a1, char a2, char a3, char a4, char a5, char a6, char a7, char a8, char a9, char a10, char a11, char a12);

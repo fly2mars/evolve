@@ -50,9 +50,11 @@ public:
 	int init(SU::suVolume *pVolume);
 	int run();
 	void outOofemfile(std::string);
-	void useOofem();
-	void readFeedback();
+	void outForcedOofemFile(std::string);
+	void useOofem(std::string);
+	void readFeedback(std::string);
 	static void outCoor(float, float, float, int, std::string coorAddress = "r:\\oofemOutFile.txt");
+	void outForcedCoor(float, float, float, int, std::string coorAddress = "r:\\oofemOutFile.txt");
 	//knowlege base
 	void readRule() {};	
 	void read_point_information(std::string address);
@@ -60,6 +62,7 @@ public:
 	bool export_stl_with_metaball(const char* fileName, std::vector<SU::OctNode*>& stlVector);
 	void assignment(std::vector<SU::OctNode*>&);
 	float return_max_strain(int, int);
+	std::vector<int> forcedPoint;
 private:
 	SU::suVolume  *pVolume_;
 	std::vector<SU::OctNode*> nodeArr_;  //morton coded node array 
