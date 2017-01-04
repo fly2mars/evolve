@@ -178,6 +178,7 @@ int suStructrueOptimizer::evolve()
 	return 0;
 }
 
+
 int suStructrueOptimizer::run()
 {
 	int iteraTimes = 0;
@@ -820,7 +821,7 @@ void suStructrueOptimizer::outForcedOofemFile(std::string outAddress)
 	ss >> tAlpha;
 	outfile << "SimpleCS 1 thick 1.0 width 1.0" << std::endl << "IsoLE 1 d "<<density<<" E "<<youngModules<<" n "<<possionRatio<<"  tAlpha "<<tAlpha
 		<< std::endl << "BoundaryCondition 1 loadTimeFunction 1 prescribedvalue 0.0"
-		<< std::endl << "ConstantSurfaceLoad 2 ndofs 3 loadType 2 Components 3 0.0 -30 0.0 loadTimeFunction 1"
+		<< std::endl << "ConstantSurfaceLoad 2 ndofs 3 loadType 2 Components 3 0.0 "<<force<<" 0.0 loadTimeFunction 1"
 		<< std::endl << "ConstantFunction 1 f(t) 1.0" << std::endl;
 	outfile.close();
 }
