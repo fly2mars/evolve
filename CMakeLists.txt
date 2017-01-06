@@ -17,7 +17,7 @@ endif ()
 
 
 ## Eigen 
-SET( EIGEN3_INCLUDE_DIR "D:/Program Files/eigen-eigen-04ab5fa4b241" )
+SET( EIGEN3_INCLUDE_DIR "e:/devlib/eigen" )
 IF( NOT EIGEN3_INCLUDE_DIR )
     MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
 ENDIF()
