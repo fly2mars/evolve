@@ -116,6 +116,9 @@ void main(int argc, char* argv[])
 
 
 	////////////////////////////////////////////////Optimization
+	//make a timer
+	Utility::suTimeSet pastTime;
+
 	//read file
 	Console::WriteLine("Reading " + inputFile);
 	Console::AdvanceLine();
@@ -123,14 +126,13 @@ void main(int argc, char* argv[])
 	SU::suVolume v;
 	v.LoadMeshFromFile(inputFile.CString());
 
-	//voxization
-	time_t start, stop;
-	start = time(NULL);
+	std::cout << "Use Time(read file): " << pastTime.getPastMicroSec() << " microseconds. " << std::endl;
 
+	//voxization
+	pastTime.reset();
 
 	v.PartitionSpace(globalValue::globalValuePoint().octreeDepth);
-	stop = time(NULL);
-	std::cout << "Use Time:" << (stop - start);
+
 	std::vector<SU::OctNode*> newLeafNodes;   //store all leaf interior nodes
 	std::vector<SU::OctNode*> &InterNodeArr = v.leafInternalNodes_;
 
@@ -153,18 +155,20 @@ void main(int argc, char* argv[])
 	Console::WriteLine("Num of interior nodes: " + suString(v.leafInternalNodes_.size()));
 	Console::AdvanceLine();
 
+	std::cout << "Use Time(partition): " << pastTime.getPastSec() << " seconds. " << std::endl;
 
 	//Run evolution
+	pastTime.reset();
+
 	suStructrueOptimizer optimizer;
 
 	optimizer.set_iter_times(globalValue::globalValuePoint().iteratorTimes);
 	optimizer.set_octree_level(globalValue::globalValuePoint().octreeDepth);
 
 	optimizer.init(&v);
-
 	optimizer.run();
 
-
+	std::cout << "Use Time(evolution): " << pastTime.getPastSec() << " seconds. " << std::endl;
 
 	//Reconstruction, bool combination and save	
 	std::vector<Eigen::Vector3f> bbox;
@@ -176,6 +180,7 @@ void main(int argc, char* argv[])
 	float volume_size = (maxP - minP).maxCoeff() / nVolume_per_dim;
 
 	//generate metaballs on the model surface.
+	pastTime.reset();
 	std::vector<SU::METABALL> mballs;
 	for (unsigned int i = 0; i <InterNodeArr.size(); i++)
 	{

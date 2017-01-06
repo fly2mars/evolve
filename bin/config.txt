@@ -1,0 +1,37 @@
+# a config example for the structure envolve tool
+# param=value
+
+# Voxilization params
+Octree Depth=4
+
+# Reconstruction params
+MC Resolution=5
+Metaball Threshold=1
+
+# FEM config
+FEM Engine=OOFEM
+OOFEM Path=d:\tools\oofem\
+OOFEM TMP_PATH=r:\
+
+# Optimization params
+Iteration Times=10
+Volume Fraction=0.5
+boundary thickness=1
+max strain=999
+
+# Load 
+region x_min=0.095
+region x_max=0.105
+region y_min=0.09
+region y_max=0.11
+region z_min=0.07
+region z_max=0.08
+
+
+
+
+
+
+
+
+
