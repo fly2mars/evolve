@@ -98,12 +98,8 @@ void main(int argc, char* argv[])
 			{
 				aValue = option.findOptionValue("-a").ConvertToInteger();
 			}
-			if (!dValue) globalValue::globalValuePoint().octreeDepth = dValue;
-			if (!rValue) globalValue::globalValuePoint().mcResolution = rValue;
-			if (fValue != 0) globalValue::globalValuePoint().metaballThreshold = fValue;
-			if (!aValue) globalValue::globalValuePoint().iteratorTimes = aValue;
 		}
-		
+
 	}
 	catch (std::exception &e)
 	{
@@ -111,28 +107,26 @@ void main(int argc, char* argv[])
 		Console::WriteLine("Using default parameters(d = 3, t = 2, r = 3)");
 	}
 
-
-
-
-
+	if (dValue) globalValue::globalValuePoint().octreeDepth = dValue;
+	if (rValue) globalValue::globalValuePoint().mcResolution = rValue;
+	if (fValue != 0) globalValue::globalValuePoint().metaballThreshold = fValue;
+	if (aValue) globalValue::globalValuePoint().iteratorTimes = aValue;
 	////////////////////////////////////////////////Optimization
-	//make a timer
 	Utility::suTimeSet pastTime;
-
+	
 	//read file
 	Console::WriteLine("Reading " + inputFile);
-	Console::AdvanceLine();
+	Console::AdvanceLine();		
 
 	SU::suVolume v;
 	v.LoadMeshFromFile(inputFile.CString());
 
-	std::cout << "Use Time(read file): " << pastTime.getPastMicroSec() << " microseconds. " << std::endl;
+	std::cout << "Use Time: " << pastTime.getPastMicroSec() << " microseconds. " << std::endl;
 
 	//voxization
 	pastTime.reset();
-
-	v.PartitionSpace(globalValue::globalValuePoint().octreeDepth);
-
+	v.PartitionSpace(globalValue::globalValuePoint().octreeDepth);	
+	
 	std::vector<SU::OctNode*> newLeafNodes;   //store all leaf interior nodes
 	std::vector<SU::OctNode*> &InterNodeArr = v.leafInternalNodes_;
 
@@ -154,21 +148,20 @@ void main(int argc, char* argv[])
 
 	Console::WriteLine("Num of interior nodes: " + suString(v.leafInternalNodes_.size()));
 	Console::AdvanceLine();
-
-	std::cout << "Use Time(partition): " << pastTime.getPastSec() << " seconds. " << std::endl;
+	std::cout << "Use Time: " << pastTime.getPastSec() << " seconds. " << std::endl;
 
 	//Run evolution
-	pastTime.reset();
-
 	suStructrueOptimizer optimizer;
 
 	optimizer.set_iter_times(globalValue::globalValuePoint().iteratorTimes);
 	optimizer.set_octree_level(globalValue::globalValuePoint().octreeDepth);
+	optimizer.set_output_model_name(outputFile.CString());
 
 	optimizer.init(&v);
+
 	optimizer.run();
 
-	std::cout << "Use Time(evolution): " << pastTime.getPastSec() << " seconds. " << std::endl;
+
 
 	//Reconstruction, bool combination and save	
 	std::vector<Eigen::Vector3f> bbox;
@@ -180,7 +173,6 @@ void main(int argc, char* argv[])
 	float volume_size = (maxP - minP).maxCoeff() / nVolume_per_dim;
 
 	//generate metaballs on the model surface.
-	pastTime.reset();
 	std::vector<SU::METABALL> mballs;
 	for (unsigned int i = 0; i <InterNodeArr.size(); i++)
 	{
@@ -203,6 +195,6 @@ void main(int argc, char* argv[])
 
 	//SU::write_metaball_to_stl(outputFile.CString(), /*samples*/mballs, fThreshold, resolution, bbox);
 
-	v.saveVTK(outputFile.CString(), globalValue::globalValuePoint().octreeDepth);
+	//v.saveVTK(outputFile.CString(), globalValue::globalValuePoint().octreeDepth);
 	system("pause");
 }

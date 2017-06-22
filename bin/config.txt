@@ -5,8 +5,8 @@
 Octree Depth=4
 
 # Reconstruction params
-MC Resolution=5
-Metaball Threshold=1
+MC Resolution=8
+Metaball Threshold=6
 
 # FEM config
 FEM Engine=OOFEM
@@ -14,7 +14,7 @@ OOFEM Path=d:\tools\oofem\
 OOFEM TMP_PATH=r:\
 
 # Optimization params
-Iteration Times=10
+Iteration Times=5
 Volume Fraction=0.5
 boundary thickness=1
 max strain=999
@@ -26,6 +26,11 @@ region y_min=0.09
 region y_max=0.11
 region z_min=0.07
 region z_max=0.08
+force=-30
+density=0.0102
+young modules=200
+possion ratio=0.394
+tAlpha=0.000078
 
 
 

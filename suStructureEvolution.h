@@ -38,9 +38,11 @@ struct point_mises_strain
 class suStructrueOptimizer
 {
 public:
-	suStructrueOptimizer():nLevel_(0), nIterTimes_(999999999), pVolume_(0), fThresholdMC(1){};
+	suStructrueOptimizer():nLevel_(0), nIterTimes_(999999999), 
+		pVolume_(0), fThresholdMC(1), output_model_name("output.stl"){};
 	~suStructrueOptimizer() {};
 
+	void set_output_model_name(std::string path) { output_model_name = path; }
 	void set_octree_level(int level) { nLevel_ = level; }
 	void set_iter_times(int nTimes) { nIterTimes_ = nTimes; }	
 		
@@ -74,8 +76,11 @@ private:
 	void ass_point();
 	int fThresholdMC ;
 	void repair();
+
+	std::string output_model_name;
 public:
 	std::vector<point_mises_strain> sort_vector;
+
 };
 
 
